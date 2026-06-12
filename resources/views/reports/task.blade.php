@@ -34,6 +34,9 @@
                 <th>Est Hours</th>
                 <th>Act Hours</th>
                 <th>Variance</th>
+                <th>Project Repository</th>
+                <th>Branch Name</th>
+                <th>Commit Hash</th>
             </tr>
         </thead>
         <tbody>
@@ -49,10 +52,23 @@
                     <td>{{ number_format($task->estimated_hours, 1) }}</td>
                     <td>{{ number_format($task->actual_hours, 1) }}</td>
                     <td>{{ number_format($task->time_variance, 1) }}</td>
+                    <td>
+                        @php $project = $task->milestone->project; @endphp
+                        @if($project->repo_name)
+                            {{ $project->repo_name }}
+                            @if($project->repo_url)
+                                ({{ $project->repo_url }})
+                            @endif
+                        @else
+                            {{ $project->repo_url ?? '-' }}
+                        @endif
+                    </td>
+                    <td>{{ $task->branch_name ?? '-' }}</td>
+                    <td>{{ $task->commit_hash ?? '-' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" style="text-align: center;">No tasks matching the criteria were found.</td>
+                    <td colspan="13" style="text-align: center;">No tasks matching the criteria were found.</td>
                 </tr>
             @endforelse
         </tbody>

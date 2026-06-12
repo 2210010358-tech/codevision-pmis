@@ -16,6 +16,9 @@ return new class extends Migration
             $table->date('deadline');
             $table->text('description')->nullable();
             $table->enum('status', ['Planning', 'Active', 'Completed', 'Delayed', 'On Hold'])->default('Planning');
+            $table->string('repo_name')->nullable();
+            $table->string('repo_url')->nullable();
+            $table->string('default_branch')->nullable();
             $table->timestamps();
         });
     }

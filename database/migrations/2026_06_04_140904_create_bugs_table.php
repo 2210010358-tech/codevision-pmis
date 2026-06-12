@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('status', ['Pending Validation', 'Open', 'In Progress', 'Resolved', 'Rejected'])->default('Pending Validation');
             $table->decimal('actual_hours', 8, 2)->default(0.00);
             $table->text('notes')->nullable();
+            $table->foreignId('task_id')->nullable()->constrained('tasks')->onDelete('set null');
             $table->timestamps();
         });
     }

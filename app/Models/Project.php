@@ -15,7 +15,10 @@ class Project extends Model
         'start_date',
         'deadline',
         'description',
-        'status'
+        'status',
+        'repo_name',
+        'repo_url',
+        'default_branch'
     ];
 
     protected $casts = [

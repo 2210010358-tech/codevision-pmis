@@ -19,7 +19,8 @@ class Bug extends Model
         'reported_by',
         'status',
         'actual_hours',
-        'notes'
+        'notes',
+        'task_id'
     ];
 
     protected $casts = [
@@ -39,5 +40,10 @@ class Bug extends Model
     public function client()
     {
         return $this->belongsTo(User::class, 'reported_by');
+    }
+
+    public function task()
+    {
+        return $this->belongsTo(Task::class);
     }
 }

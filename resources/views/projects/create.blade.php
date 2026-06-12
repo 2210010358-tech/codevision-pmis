@@ -59,6 +59,24 @@
                 <textarea class="form-control" id="description" name="description" rows="5" placeholder="Outline the project deliverables, specifications, and objectives...">{{ old('description') }}</textarea>
             </div>
 
+            <hr>
+            <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-git me-1"></i>Repository Reference (Optional)</h5>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="repo_name" class="form-label fw-semibold">Repository Name</label>
+                    <input type="text" class="form-control" id="repo_name" name="repo_name" value="{{ old('repo_name') }}" placeholder="e.g. ecommerce-platform">
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label for="repo_url" class="form-label fw-semibold">Repository URL</label>
+                    <input type="url" class="form-control" id="repo_url" name="repo_url" value="{{ old('repo_url') }}" placeholder="https://github.com/...">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="default_branch" class="form-label fw-semibold">Default Branch</label>
+                    <input type="text" class="form-control" id="default_branch" name="default_branch" value="{{ old('default_branch', 'main') }}" placeholder="e.g. main">
+                </div>
+            </div>
+            <hr>
+
             <div class="mb-4 form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="use_default_milestones" name="use_default_milestones" value="1" checked>
                 <label class="form-check-label fw-semibold text-dark" for="use_default_milestones">

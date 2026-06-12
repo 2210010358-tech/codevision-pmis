@@ -54,6 +54,9 @@ class ProjectController extends Controller
             'deadline' => 'required|date|after_or_equal:start_date',
             'description' => 'nullable|string',
             'status' => 'required|in:Planning,Active,Completed,Delayed,On Hold',
+            'repo_name' => 'nullable|string|max:255',
+            'repo_url' => 'nullable|url|max:255',
+            'default_branch' => 'nullable|string|max:255',
         ]);
 
         $project = Project::create($validated);
@@ -156,6 +159,9 @@ class ProjectController extends Controller
             'deadline' => 'required|date|after_or_equal:start_date',
             'description' => 'nullable|string',
             'status' => 'required|in:Planning,Active,Completed,Delayed,On Hold',
+            'repo_name' => 'nullable|string|max:255',
+            'repo_url' => 'nullable|url|max:255',
+            'default_branch' => 'nullable|string|max:255',
         ]);
 
         $project->update($validated);

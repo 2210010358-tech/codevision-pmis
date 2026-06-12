@@ -47,6 +47,11 @@
             <i class="bi bi-file-earmark-arrow-up me-1"></i> Documents ({{ $documents->count() }})
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {{ request('tab') == 'repository' ? 'active' : '' }}" id="repository-tab" data-bs-toggle="tab" data-bs-target="#repository" type="button" role="tab" aria-controls="repository" aria-selected="false">
+            <i class="bi bi-git me-1"></i> Repository
+        </button>
+    </li>
 </ul>
 
 <!-- Tabs Content -->
@@ -248,6 +253,7 @@
                                 <th>Priority</th>
                                 <th>Reporter</th>
                                 <th>Assigned To</th>
+                                <th>Related Fix Task</th>
                                 <th>Status</th>
                                 <th>Actual Hours</th>
                                 <th>Actions</th>
@@ -267,6 +273,29 @@
                                     </td>
                                     <td>{{ $bug->client->name ?? 'N/A' }}</td>
                                     <td>{{ $bug->developer->name ?? 'Unassigned' }}</td>
+                                    <td>
+                                        @if($bug->task)
+                                            <a href="{{ route('tasks.show', $bug->task->id) }}" class="fw-semibold text-decoration-none small">
+                                                {{ $bug->task->name }}
+                                            </a>
+                                            <div class="mt-1 small" style="font-size: 0.75rem;">
+                                                Status: <span class="badge bg-{{ $bug->task->status === 'Done' ? 'success' : ($bug->task->status === 'In Progress' ? 'primary' : 'secondary') }}">{{ $bug->task->status }}</span>
+                                                @if($bug->task->commit_hash)
+                                                    @if($bug->task->commit_url)
+                                                        <a href="{{ $bug->task->commit_url }}" target="_blank" class="badge bg-success text-decoration-none ms-1">
+                                                            <i class="bi bi-git me-1"></i>{{ $bug->task->commit_hash }}
+                                                        </a>
+                                                    @else
+                                                        <span class="badge bg-secondary ms-1">
+                                                            <i class="bi bi-git me-1"></i>{{ $bug->task->commit_hash }}
+                                                        </span>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-muted small">None linked</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge bg-{{ $bug->status == 'Resolved' ? 'success' : ($bug->status == 'In Progress' ? 'primary' : ($bug->status == 'Pending Validation' ? 'warning text-dark' : ($bug->status == 'Rejected' ? 'danger' : 'secondary'))) }}">
                                             {{ $bug->status }}
@@ -296,7 +325,7 @@
 
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-4 text-muted">No bugs reported. Excellent!</td>
+                                    <td colspan="8" class="text-center py-4 text-muted">No bugs reported. Excellent!</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -375,6 +404,51 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPOSITORY TAB -->
+    <div class="tab-pane fade {{ request('tab') == 'repository' ? 'show active' : '' }}" id="repository" role="tabpanel" aria-labelledby="repository-tab">
+        <div class="card col-lg-8 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="fw-bold m-0"><i class="bi bi-git me-2 text-primary"></i>Project Repository Information</h5>
+            </div>
+            <div class="card-body">
+                @if($project->repo_name || $project->repo_url || $project->default_branch)
+                    <div class="mb-4">
+                        <label class="text-muted small d-block">Repository Name</label>
+                        <div class="fw-bold text-dark fs-5 mt-1">{{ $project->repo_name ?: 'N/A' }}</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-muted small d-block">Repository URL</label>
+                        @if($project->repo_url)
+                            <div class="mt-1">
+                                <a href="{{ $project->repo_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-3 text-break">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>{{ $project->repo_url }}
+                                </a>
+                            </div>
+                        @else
+                            <div class="text-secondary mt-1">N/A</div>
+                        @endif
+                    </div>
+                    <div class="mb-2">
+                        <label class="text-muted small d-block">Default Branch</label>
+                        <div class="mt-1">
+                            <span class="badge bg-secondary font-monospace fs-6 px-3 py-2"><i class="bi bi-git me-1"></i>{{ $project->default_branch ?: 'main' }}</span>
+                        </div>
+                    </div>
+                @else
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-folder-x fs-1 mb-3 d-block text-secondary"></i>
+                        <p class="m-0">No repository information has been linked to this project yet.</p>
+                        @if(auth()->user()->hasRole('Administrator'))
+                            <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-primary btn-sm rounded-3 mt-3">
+                                <i class="bi bi-pencil me-1"></i> Add Repository Information
+                            </a>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -478,6 +552,29 @@
                         <label class="form-label fw-semibold">Deadline</label>
                         <input type="date" class="form-control" name="deadline" required>
                     </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3 text-secondary">Version Control Reference (Optional)</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Repository URL</label>
+                            <input type="url" class="form-control" name="repo_url" placeholder="https://github.com/...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Branch Name</label>
+                            <input type="text" class="form-control" name="branch_name" placeholder="e.g. main">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Commit Hash</label>
+                            <input type="text" class="form-control" name="commit_hash" placeholder="e.g. a7c2d91">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Commit URL</label>
+                            <input type="url" class="form-control" name="commit_url" placeholder="https://github.com/.../commit/...">
+                        </div>
+                    </div>
+                    <hr>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Description</label>
                         <textarea class="form-control" name="description" rows="3" placeholder="Outline specific criteria for task completion..."></textarea>
@@ -676,6 +773,17 @@
                                 <option value="In Progress" {{ $bug->status == 'In Progress' ? 'selected' : '' }}>In Progress</option>
                                 <option value="Resolved" {{ $bug->status == 'Resolved' ? 'selected' : '' }}>Resolved</option>
                                 <option value="Rejected" {{ $bug->status == 'Rejected' ? 'selected' : '' }}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Related Fix Task</label>
+                            <select class="form-select" name="task_id">
+                                <option value="">None / Choose Task</option>
+                                @foreach($allProjectTasks as $t)
+                                    <option value="{{ $t->id }}" {{ $bug->task_id == $t->id ? 'selected' : '' }}>
+                                        {{ $t->name }} ({{ $t->status }})
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                     </div>

@@ -81,6 +81,7 @@ class BugController extends Controller
             'priority' => 'required|in:Low,Medium,High,Critical',
             'assigned_to' => 'nullable|exists:users,id',
             'status' => 'required|in:Pending Validation,Open,In Progress,Resolved,Rejected',
+            'task_id' => 'nullable|exists:tasks,id',
         ]);
 
         $oldAssigned = $bug->assigned_to;

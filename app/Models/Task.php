@@ -20,7 +20,10 @@ class Task extends Model
         'actual_hours',
         'progress_percentage',
         'status',
-        'notes'
+        'notes',
+        'branch_name',
+        'commit_hash',
+        'commit_url'
     ];
 
     protected $casts = [
@@ -53,6 +56,11 @@ class Task extends Model
     public function documents()
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function bugs()
+    {
+        return $this->hasMany(Bug::class);
     }
 
     // Accessors for metrics

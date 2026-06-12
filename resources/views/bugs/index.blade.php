@@ -24,6 +24,7 @@
                         <th>Priority</th>
                         <th>Reporter</th>
                         <th>Assigned To</th>
+                        <th>Related Fix Task</th>
                         <th>Status</th>
                         <th>Actual Hours</th>
                         <th>Actions</th>
@@ -44,6 +45,29 @@
                             </td>
                             <td>{{ $bug->client->name ?? 'N/A' }}</td>
                             <td>{{ $bug->developer->name ?? 'Unassigned' }}</td>
+                            <td>
+                                @if($bug->task)
+                                    <a href="{{ route('tasks.show', $bug->task->id) }}" class="fw-semibold text-decoration-none small">
+                                        {{ $bug->task->name }}
+                                    </a>
+                                    <div class="mt-1 small" style="font-size: 0.75rem;">
+                                        Status: <span class="badge bg-{{ $bug->task->status === 'Done' ? 'success' : ($bug->task->status === 'In Progress' ? 'primary' : 'secondary') }}">{{ $bug->task->status }}</span>
+                                        @if($bug->task->commit_hash)
+                                            @if($bug->task->commit_url)
+                                                <a href="{{ $bug->task->commit_url }}" target="_blank" class="badge bg-success text-decoration-none ms-1">
+                                                    <i class="bi bi-git me-1"></i>{{ $bug->task->commit_hash }}
+                                                </a>
+                                            @else
+                                                <span class="badge bg-secondary ms-1">
+                                                    <i class="bi bi-git me-1"></i>{{ $bug->task->commit_hash }}
+                                                </span>
+                                            @endif
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-muted small">None linked</span>
+                                @endif
+                            </td>
                             <td>
                                 <span class="badge bg-{{ $bug->status === 'Resolved' ? 'success' : ($bug->status === 'In Progress' ? 'primary' : ($bug->status === 'Pending Validation' ? 'warning text-dark' : ($bug->status === 'Rejected' ? 'danger' : 'secondary'))) }}">
                                     {{ $bug->status }}
@@ -74,7 +98,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">No bugs recorded.</td>
+                            <td colspan="9" class="text-center py-5 text-muted">No bugs recorded.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -136,6 +160,17 @@
                                 <option value="Rejected" {{ $bug->status == 'Rejected' ? 'selected' : '' }}>Rejected</option>
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Related Fix Task</label>
+                            <select class="form-select" name="task_id">
+                                <option value="">None / Choose Task</option>
+                                @foreach(\App\Models\Task::whereHas('milestone', function($q) use ($bug) { $q->where('project_id', $bug->project_id); })->get() as $t)
+                                    <option value="{{ $t->id }}" {{ $bug->task_id == $t->id ? 'selected' : '' }}>
+                                        {{ $t->name }} ({{ $t->status }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -173,7 +208,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Notes / Resolution Details</label>
-                            <textarea class="form-control" name="notes" rows="3" placeholder="Explain the root cause or resolution..."></textarea>
+                            <textarea class="form-control" name="notes" rows="3" placeholder="Explain the root cause or resolution...">{{ $bug->notes }}</textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

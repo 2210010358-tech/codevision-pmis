@@ -53,6 +53,9 @@ class TaskController extends Controller
             'priority' => 'required|in:Low,Medium,High,Critical',
             'deadline' => 'required|date',
             'estimated_hours' => 'required|numeric|min:0',
+            'branch_name' => 'nullable|string|max:255',
+            'commit_hash' => 'nullable|string|max:255',
+            'commit_url' => 'nullable|url|max:255',
         ]);
 
         $task = $milestone->tasks()->create($validated);
@@ -82,6 +85,9 @@ class TaskController extends Controller
             'estimated_hours' => 'required|numeric|min:0',
             'status' => 'required|in:To Do,In Progress,Done',
             'progress_percentage' => 'required|integer|min:0|max:100',
+            'branch_name' => 'nullable|string|max:255',
+            'commit_hash' => 'nullable|string|max:255',
+            'commit_url' => 'nullable|url|max:255',
         ]);
 
         $oldAssigned = $task->assigned_to;
@@ -266,5 +272,23 @@ class TaskController extends Controller
         ]);
 
         return back()->with('success', 'Comment added.');
+    }
+
+    public function updateVcsReference(Request $request, Task $task)
+    {
+        $user = Auth::user();
+        if (!$user->hasRole('Administrator') && $task->assigned_to !== $user->id) {
+            abort(403, 'You are not authorized to update this task\'s Version Control information.');
+        }
+
+        $validated = $request->validate([
+            'branch_name' => 'nullable|string|max:255',
+            'commit_hash' => 'nullable|string|max:255',
+            'commit_url' => 'nullable|url|max:255',
+        ]);
+
+        $task->update($validated);
+
+        return back()->with('success', 'Version Control Information updated successfully.');
     }
 }

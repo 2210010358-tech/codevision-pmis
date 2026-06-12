@@ -262,10 +262,98 @@
                         <i class="bi bi-calendar-event"></i> {{ $task->deadline->format('Y-m-d') }}
                     </div>
                 </div>
+        </div>
+
+        <!-- Source Code Reference -->
+        <div class="card mt-4 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">Source Code Reference</span>
+                @if(auth()->user()->hasRole('Administrator') || (auth()->user()->hasRole('Developer') && $task->assigned_to == auth()->id()))
+                    <button class="btn btn-sm btn-outline-primary border-0 p-0" data-bs-toggle="modal" data-bs-target="#editVcsModal">
+                        <i class="bi bi-pencil-square fs-5"></i>
+                    </button>
+                @endif
+            </div>
+            <div class="card-body">
+                <!-- Project Level Repository Info -->
+                @php $project = $task->milestone->project; @endphp
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Repository Name</span>
+                    <strong class="text-dark small"><i class="bi bi-folder2-open me-1"></i>{{ $project->repo_name ?: 'N/A' }}</strong>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Repository URL</span>
+                    @if($project->repo_url)
+                        <a href="{{ $project->repo_url }}" target="_blank" class="text-decoration-none small text-break"><i class="bi bi-github me-1"></i>{{ $project->repo_url }}</a>
+                    @else
+                        <span class="text-secondary small">N/A</span>
+                    @endif
+                </div>
+                <hr>
+
+                <!-- Task Level Commit Info -->
+                @if($task->branch_name || $task->commit_hash || $task->commit_url)
+                    @if($task->branch_name)
+                        <div class="mb-2">
+                            <span class="text-muted small d-block">Branch Name</span>
+                            <span class="badge bg-secondary font-monospace"><i class="bi bi-git me-1"></i>{{ $task->branch_name }}</span>
+                        </div>
+                    @endif
+                    @if($task->commit_hash)
+                        <div class="mb-2">
+                            <span class="text-muted small d-block">Commit Hash</span>
+                            <span class="font-monospace text-dark small bg-light px-2 py-1 rounded border">{{ $task->commit_hash }}</span>
+                        </div>
+                    @endif
+                    @if($task->commit_url)
+                        <div class="mt-3">
+                            <a href="{{ $task->commit_url }}" target="_blank" class="btn btn-sm btn-outline-success w-100 rounded-3">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> View Commit
+                            </a>
+                        </div>
+                    @endif
+                @else
+                    <p class="text-center text-muted small my-2">No commit reference attached to this task.</p>
+                @endif
             </div>
         </div>
     </div>
 </div>
+
+<!-- Edit VCS Modal -->
+@if(auth()->user()->hasRole('Administrator') || (auth()->user()->hasRole('Developer') && $task->assigned_to == auth()->id()))
+<div class="modal fade" id="editVcsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Edit Source Code Reference</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('tasks.vcs.update', $task->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Branch Name</label>
+                        <input type="text" class="form-control" name="branch_name" value="{{ old('branch_name', $task->branch_name) }}" placeholder="e.g. main, feature/login">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Commit Hash</label>
+                        <input type="text" class="form-control" name="commit_hash" value="{{ old('commit_hash', $task->commit_hash) }}" placeholder="e.g. a7c2d91">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Commit URL</label>
+                        <input type="url" class="form-control" name="commit_url" value="{{ old('commit_url', $task->commit_url) }}" placeholder="https://github.com/username/repository/commit/a7c2d91">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save References</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Edit Task Modal (Admin Only) -->
 @if(auth()->user()->hasRole('Administrator'))
@@ -328,6 +416,23 @@
                         <label class="form-label fw-semibold">Deadline</label>
                         <input type="date" class="form-control" name="deadline" value="{{ $task->deadline->format('Y-m-d') }}" required>
                     </div>
+                    <hr>
+                    <h6 class="fw-bold mb-3 text-secondary">Source Code Reference (Optional)</h6>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Branch Name</label>
+                        <input type="text" class="form-control" name="branch_name" value="{{ $task->branch_name }}" placeholder="e.g. main">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Commit Hash</label>
+                            <input type="text" class="form-control" name="commit_hash" value="{{ $task->commit_hash }}" placeholder="e.g. a7c2d91">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Commit URL</label>
+                            <input type="url" class="form-control" name="commit_url" value="{{ $task->commit_url }}" placeholder="https://github.com/.../commit/...">
+                        </div>
+                    </div>
+                    <hr>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Description</label>
                         <textarea class="form-control" name="description" rows="3">{{ $task->description }}</textarea>

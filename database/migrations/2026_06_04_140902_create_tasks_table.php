@@ -21,6 +21,9 @@ return new class extends Migration
             $table->integer('progress_percentage')->default(0);
             $table->enum('status', ['To Do', 'In Progress', 'Done'])->default('To Do');
             $table->text('notes')->nullable();
+            $table->string('branch_name')->nullable();
+            $table->string('commit_hash')->nullable();
+            $table->string('commit_url')->nullable();
             $table->timestamps();
         });
     }

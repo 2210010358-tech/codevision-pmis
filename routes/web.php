@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{task}/checklist', [TaskController::class, 'storeChecklist'])->name('tasks.checklist.store');
     Route::post('/checklist-items/{item}/toggle', [TaskController::class, 'toggleChecklist'])->name('checklist.toggle');
     Route::post('/tasks/{task}/comments', [TaskController::class, 'storeComment'])->name('tasks.comments.store');
+    Route::post('/tasks/{task}/vcs', [TaskController::class, 'updateVcsReference'])->name('tasks.vcs.update');
 
     // Bugs
     Route::get('/bugs', [BugController::class, 'index'])->name('bugs.index');

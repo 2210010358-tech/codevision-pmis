@@ -27,6 +27,9 @@ class ProjectSeeder extends Seeder
                 'deadline' => Carbon::now()->addMonths(2),
                 'description' => 'Migrating the legacy retail site to a modern, scalable e-commerce infrastructure with API-first structure.',
                 'status' => 'Active',
+                'repo_name' => 'ecommerce-platform',
+                'repo_url' => 'https://github.com/codevision/ecommerce-platform',
+                'default_branch' => 'main',
             ]
         );
 
@@ -51,6 +54,9 @@ class ProjectSeeder extends Seeder
                 'deadline' => Carbon::now()->subMonth(),
                 'description' => 'Build a unified portal for employee tracking, payroll oversight, and annual performance reviews.',
                 'status' => 'Completed',
+                'repo_name' => 'hr-portal',
+                'repo_url' => 'https://github.com/codevision/hr-portal',
+                'default_branch' => 'main',
             ]
         );
     }

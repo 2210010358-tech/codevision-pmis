@@ -29,7 +29,8 @@
                 <th>Priority</th>
                 <th>Reporter</th>
                 <th>Assigned Developer</th>
-                <th>Status</th>
+                <th>Related Fix Task</th>
+                <th>Resolution Status</th>
                 <th>Actual Hours</th>
             </tr>
         </thead>
@@ -44,12 +45,13 @@
                     <td>{{ $bug->priority }}</td>
                     <td>{{ $bug->client->name ?? 'N/A' }}</td>
                     <td>{{ $bug->developer->name ?? 'Unassigned' }}</td>
+                    <td>{{ $bug->task->name ?? '-' }}</td>
                     <td>{{ $bug->status }}</td>
                     <td>{{ number_format($bug->actual_hours, 1) }} hrs</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" style="text-align: center;">No bugs matching the criteria were found.</td>
+                    <td colspan="8" style="text-align: center;">No bugs matching the criteria were found.</td>
                 </tr>
             @endforelse
         </tbody>
