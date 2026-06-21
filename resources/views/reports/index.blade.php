@@ -61,6 +61,16 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date" class="form-label small text-muted">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_date" class="form-label small text-muted">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Export Format -->

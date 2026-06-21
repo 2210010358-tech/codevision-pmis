@@ -42,12 +42,16 @@ class ReportController extends Controller
             'format' => 'required|in:pdf,excel',
             'project_id' => 'nullable|exists:projects,id',
             'developer_id' => 'nullable|exists:users,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         $reportType = intval($request->report_type);
         $format = $request->format;
         $projectId = $request->project_id;
         $developerId = $request->developer_id;
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
 
         $data = [];
         $view = '';
@@ -57,56 +61,80 @@ class ReportController extends Controller
             case 1:
                 $view = 'reports.system_summary';
                 $filename = 'System_Summary_Report_' . date('YmdHis');
-                $data = $this->getSystemSummaryData();
+                $data = $this->getSystemSummaryData($startDate, $endDate);
                 break;
             case 2:
                 $view = 'reports.project';
                 $filename = 'Project_Report_' . date('YmdHis');
-                $data = $this->getProjectReportData($projectId);
+                $data = $this->getProjectReportData($projectId, $startDate, $endDate);
                 break;
             case 3:
                 $view = 'reports.task';
                 $filename = 'Task_Report_' . date('YmdHis');
-                $data = $this->getTaskReportData($projectId, $developerId);
+                $data = $this->getTaskReportData($projectId, $developerId, $startDate, $endDate);
                 break;
             case 4:
                 $view = 'reports.bug';
                 $filename = 'Bug_Report_' . date('YmdHis');
-                $data = $this->getBugReportData($projectId, $developerId);
+                $data = $this->getBugReportData($projectId, $developerId, $startDate, $endDate);
                 break;
             case 5:
                 $view = 'reports.project_progress';
                 $filename = 'Project_Progress_Report_' . date('YmdHis');
-                $data = $this->getProjectProgressData($projectId);
+                $data = $this->getProjectProgressData($projectId, $startDate, $endDate);
                 break;
             case 6:
                 $view = 'reports.developer_workload';
                 $filename = 'Developer_Workload_Report_' . date('YmdHis');
-                $data = $this->getDeveloperWorkloadData($developerId);
+                $data = $this->getDeveloperWorkloadData($developerId, $startDate, $endDate);
                 break;
             case 7:
                 $view = 'reports.developer_productivity';
                 $filename = 'Developer_Productivity_Report_' . date('YmdHis');
-                $data = $this->getDeveloperProductivityData($developerId);
+                $data = $this->getDeveloperProductivityData($developerId, $startDate, $endDate);
                 break;
             case 8:
                 $view = 'reports.delay';
                 $filename = 'Delay_Report_' . date('YmdHis');
-                $data = $this->getDelayReportData($projectId);
+                $data = $this->getDelayReportData($projectId, $startDate, $endDate);
                 break;
             case 9:
                 $view = 'reports.milestone_progress';
                 $filename = 'Milestone_Progress_Report_' . date('YmdHis');
-                $data = $this->getMilestoneProgressData($projectId);
+                $data = $this->getMilestoneProgressData($projectId, $startDate, $endDate);
                 break;
         }
 
+        $now = Carbon::now('Asia/Makassar');
         $data['report_title'] = $this->getReportTitle($reportType);
-        $data['generated_at'] = Carbon::now()->format('Y-m-d H:i:s');
+        $data['generated_at'] = $now->format('d F Y H:i:s') . ' WITA';
+        $data['signature_date'] = 'Banjarmasin, ' . $now->format('d F Y');
         $data['generated_by'] = $user->name;
+        $data['start_date'] = $startDate ? Carbon::parse($startDate)->format('Y-m-d') : null;
+        $data['end_date'] = $endDate ? Carbon::parse($endDate)->format('Y-m-d') : null;
 
         if ($format === 'pdf') {
             $pdf = Pdf::loadView($view, $data)->setPaper('a4', 'landscape');
+            
+            // Render the PDF layout first to calculate pages
+            $pdf->render();
+            
+            // Access canvas to draw dynamic page numbers
+            $canvas = $pdf->getCanvas();
+            $width = $canvas->get_width();
+            $height = $canvas->get_height();
+            
+            // Align "Page X of Y" to the bottom center
+            $font = $pdf->getDomPDF()->getFontMetrics()->getFont("helvetica", "normal");
+            $size = 9;
+            $color = array(0.392, 0.455, 0.545); // Slate gray (#64748b)
+            
+            $text = "Page {PAGE_NUM} of {PAGE_COUNT}";
+            $x = ($width / 2) - 30; // Centered
+            $y = $height - 35;      // 35pt from bottom
+            
+            $canvas->page_text($x, $y, $text, $font, $size, $color);
+            
             return $pdf->download($filename . '.pdf');
         } else {
             return Excel::download(new ReportExport($view, $data), $filename . '.xlsx');
@@ -129,39 +157,63 @@ class ReportController extends Controller
         return $titles[$type] ?? 'Report';
     }
 
-    private function getSystemSummaryData()
+    private function getSystemSummaryData($startDate = null, $endDate = null)
     {
+        $projectQuery = Project::query();
+        $milestoneQuery = Milestone::query();
+        $taskQuery = Task::query();
+        $bugQuery = Bug::query();
+
+        if ($startDate) {
+            $projectQuery->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+            $milestoneQuery->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+            $taskQuery->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+            $bugQuery->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+        }
+        if ($endDate) {
+            $projectQuery->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+            $milestoneQuery->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+            $taskQuery->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+            $bugQuery->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+        }
+
         return [
-            'total_projects' => Project::count(),
-            'active_projects' => Project::where('status', 'Active')->count(),
-            'completed_projects' => Project::where('status', 'Completed')->count(),
-            'delayed_projects' => Project::where('status', 'Delayed')->count(),
-            'total_milestones' => Milestone::count(),
-            'total_tasks' => Task::count(),
-            'todo_tasks' => Task::where('status', 'To Do')->count(),
-            'in_progress_tasks' => Task::where('status', 'In Progress')->count(),
-            'done_tasks' => Task::where('status', 'Done')->count(),
-            'total_bugs' => Bug::count(),
-            'pending_validation_bugs' => Bug::where('status', 'Pending Validation')->count(),
-            'open_bugs' => Bug::where('status', 'Open')->count(),
-            'in_progress_bugs' => Bug::where('status', 'In Progress')->count(),
-            'resolved_bugs' => Bug::where('status', 'Resolved')->count(),
-            'rejected_bugs' => Bug::where('status', 'Rejected')->count(),
+            'total_projects' => $projectQuery->count(),
+            'active_projects' => (clone $projectQuery)->where('status', 'Active')->count(),
+            'completed_projects' => (clone $projectQuery)->where('status', 'Completed')->count(),
+            'delayed_projects' => (clone $projectQuery)->where('status', 'Delayed')->count(),
+            'total_milestones' => $milestoneQuery->count(),
+            'total_tasks' => $taskQuery->count(),
+            'todo_tasks' => (clone $taskQuery)->where('status', 'To Do')->count(),
+            'in_progress_tasks' => (clone $taskQuery)->where('status', 'In Progress')->count(),
+            'done_tasks' => (clone $taskQuery)->where('status', 'Done')->count(),
+            'total_bugs' => $bugQuery->count(),
+            'pending_validation_bugs' => (clone $bugQuery)->where('status', 'Pending Validation')->count(),
+            'open_bugs' => (clone $bugQuery)->where('status', 'Open')->count(),
+            'in_progress_bugs' => (clone $bugQuery)->where('status', 'In Progress')->count(),
+            'resolved_bugs' => (clone $bugQuery)->where('status', 'Resolved')->count(),
+            'rejected_bugs' => (clone $bugQuery)->where('status', 'Rejected')->count(),
             'total_developers' => User::role('Developer')->count(),
             'total_clients' => User::role('Client')->count(),
         ];
     }
 
-    private function getProjectReportData($projectId)
+    private function getProjectReportData($projectId, $startDate = null, $endDate = null)
     {
         $query = Project::with(['client', 'milestones']);
         if ($projectId) {
             $query->where('id', $projectId);
         }
+        if ($startDate) {
+            $query->where('start_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('start_date', '<=', $endDate);
+        }
         return ['projects' => $query->get()];
     }
 
-    private function getTaskReportData($projectId, $developerId)
+    private function getTaskReportData($projectId, $developerId, $startDate = null, $endDate = null)
     {
         $query = Task::with(['milestone.project', 'developer']);
         
@@ -173,11 +225,17 @@ class ReportController extends Controller
         if ($developerId) {
             $query->where('assigned_to', $developerId);
         }
+        if ($startDate) {
+            $query->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+        }
+        if ($endDate) {
+            $query->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+        }
 
         return ['tasks' => $query->get()];
     }
 
-    private function getBugReportData($projectId, $developerId)
+    private function getBugReportData($projectId, $developerId, $startDate = null, $endDate = null)
     {
         $query = Bug::with(['project', 'developer', 'client']);
 
@@ -187,15 +245,27 @@ class ReportController extends Controller
         if ($developerId) {
             $query->where('assigned_to', $developerId);
         }
+        if ($startDate) {
+            $query->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+        }
+        if ($endDate) {
+            $query->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+        }
 
         return ['bugs' => $query->get()];
     }
 
-    private function getProjectProgressData($projectId)
+    private function getProjectProgressData($projectId, $startDate = null, $endDate = null)
     {
         $query = Project::with(['milestones.tasks']);
         if ($projectId) {
             $query->where('id', $projectId);
+        }
+        if ($startDate) {
+            $query->where('start_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('start_date', '<=', $endDate);
         }
         
         $projects = $query->get()->map(function($project) {
@@ -228,15 +298,22 @@ class ReportController extends Controller
         return ['projects' => $projects];
     }
 
-    private function getDeveloperWorkloadData($developerId)
+    private function getDeveloperWorkloadData($developerId, $startDate = null, $endDate = null)
     {
         $query = User::role('Developer');
         if ($developerId) {
             $query->where('id', $developerId);
         }
 
-        $developers = $query->get()->map(function($dev) {
-            $tasks = Task::where('assigned_to', $dev->id)->get();
+        $developers = $query->get()->map(function($dev) use ($startDate, $endDate) {
+            $tasksQuery = Task::where('assigned_to', $dev->id);
+            if ($startDate) {
+                $tasksQuery->where('created_at', '>=', Carbon::parse($startDate)->startOfDay());
+            }
+            if ($endDate) {
+                $tasksQuery->where('created_at', '<=', Carbon::parse($endDate)->endOfDay());
+            }
+            $tasks = $tasksQuery->get();
             $activeTasks = $tasks->where('status', '!=', 'Done')->count();
             
             return (object) [
@@ -252,15 +329,22 @@ class ReportController extends Controller
         return ['developers' => $developers];
     }
 
-    private function getDeveloperProductivityData($developerId)
+    private function getDeveloperProductivityData($developerId, $startDate = null, $endDate = null)
     {
         $query = User::role('Developer');
         if ($developerId) {
             $query->where('id', $developerId);
         }
 
-        $developers = $query->get()->map(function($dev) {
-            $completedTasks = Task::where('assigned_to', $dev->id)->where('status', 'Done')->get();
+        $developers = $query->get()->map(function($dev) use ($startDate, $endDate) {
+            $completedTasksQuery = Task::where('assigned_to', $dev->id)->where('status', 'Done');
+            if ($startDate) {
+                $completedTasksQuery->where('updated_at', '>=', Carbon::parse($startDate)->startOfDay());
+            }
+            if ($endDate) {
+                $completedTasksQuery->where('updated_at', '<=', Carbon::parse($endDate)->endOfDay());
+            }
+            $completedTasks = $completedTasksQuery->get();
             
             $estSum = $completedTasks->sum('estimated_hours');
             $actSum = $completedTasks->sum('actual_hours');
@@ -284,7 +368,7 @@ class ReportController extends Controller
         return ['developers' => $developers];
     }
 
-    private function getDelayReportData($projectId)
+    private function getDelayReportData($projectId, $startDate = null, $endDate = null)
     {
         $projectQuery = Project::where('status', '!=', 'Completed')
             ->where('deadline', '<', Carbon::now());
@@ -299,6 +383,14 @@ class ReportController extends Controller
                 $q->where('project_id', $projectId);
             });
         }
+        if ($startDate) {
+            $projectQuery->where('deadline', '>=', $startDate);
+            $taskQuery->where('deadline', '>=', $startDate);
+        }
+        if ($endDate) {
+            $projectQuery->where('deadline', '<=', $endDate);
+            $taskQuery->where('deadline', '<=', $endDate);
+        }
 
         return [
             'delayed_projects' => $projectQuery->get(),
@@ -306,13 +398,19 @@ class ReportController extends Controller
         ];
     }
 
-    private function getMilestoneProgressData($projectId)
+    private function getMilestoneProgressData($projectId, $startDate = null, $endDate = null)
     {
         $query = Project::with(['milestones.tasks']);
         if ($projectId) {
             $query->where('id', $projectId);
         }
-
+        if ($startDate) {
+            $query->where('start_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('start_date', '<=', $endDate);
+        }
+        
         $projects = $query->get()->map(function($project) {
             $milestones = $project->milestones->map(function($m) {
                 $tasksCount = $m->tasks->count();
