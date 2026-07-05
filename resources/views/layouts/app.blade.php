@@ -187,7 +187,7 @@
         <!-- Sidebar -->
         <nav id="sidebar">
             <div class="sidebar-header">
-                <i class="bi bi-code-square text-primary"></i>
+                <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 28px; width: 28px; object-fit: contain; border-radius: 4px;">
                 <span>CodeVision PMIS</span>
             </div>
             <div class="list-group list-group-flush flex-grow-1">

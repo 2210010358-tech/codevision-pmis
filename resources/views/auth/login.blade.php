@@ -60,7 +60,7 @@
 <body>
     <div class="login-card">
         <div class="login-logo">
-            <i class="bi bi-code-square"></i>
+            <img src="{{ asset('images/logo.png') }}" alt="CodeVision Logo" style="height: 64px; width: 64px; object-fit: contain; border-radius: 12px;">
         </div>
         <h3 class="text-center fw-bold mb-1 text-dark">CodeVision PMIS</h3>
         <p class="text-center text-secondary small mb-4">Project Management Information System</p>
