@@ -10,6 +10,7 @@ use App\Models\Milestone;
 use App\Models\Task;
 use App\Models\Bug;
 use App\Models\Document;
+use App\Notifications\ProjectNotification;
 use Carbon\Carbon;
 
 class ProjectController extends Controller
@@ -60,6 +61,10 @@ class ProjectController extends Controller
         ]);
 
         $project = Project::create($validated);
+
+        if ($project->client) {
+            $project->client->notify(new ProjectNotification($project, 'assigned'));
+        }
 
         if ($request->boolean('use_default_milestones')) {
             // Automatically seed the 5 milestones (Analysis, Design, Development, Testing, Deployment)
@@ -164,7 +169,18 @@ class ProjectController extends Controller
             'default_branch' => 'nullable|string|max:255',
         ]);
 
+        $oldClientId = $project->client_id;
+        $oldStatus = $project->status;
+
         $project->update($validated);
+
+        if ($project->client) {
+            if ($project->client_id != $oldClientId) {
+                $project->client->notify(new ProjectNotification($project, 'assigned'));
+            } elseif ($project->status != $oldStatus) {
+                $project->client->notify(new ProjectNotification($project, 'status_updated'));
+            }
+        }
 
         return redirect()->route('projects.show', $project->id)->with('success', 'Project updated successfully.');
     }

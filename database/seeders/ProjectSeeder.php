@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Notifications\ProjectNotification;
 use App\Models\Project;
 use App\Models\User;
 use Carbon\Carbon;
@@ -19,7 +20,7 @@ class ProjectSeeder extends Seeder
         }
 
         // Project 1
-        Project::firstOrCreate(
+        $p1 = Project::firstOrCreate(
             ['name' => 'E-Commerce Replatforming'],
             [
                 'client_id' => $client1->id,
@@ -34,7 +35,7 @@ class ProjectSeeder extends Seeder
         );
 
         // Project 2
-        Project::firstOrCreate(
+        $p2 = Project::firstOrCreate(
             ['name' => 'Mobile Banking Suite'],
             [
                 'client_id' => $client2->id,
@@ -46,7 +47,7 @@ class ProjectSeeder extends Seeder
         );
 
         // Project 3
-        Project::firstOrCreate(
+        $p3 = Project::firstOrCreate(
             ['name' => 'Internal HR Portal'],
             [
                 'client_id' => $client1->id,
@@ -59,5 +60,13 @@ class ProjectSeeder extends Seeder
                 'default_branch' => 'main',
             ]
         );
+
+        // Send notifications if not already present in database
+        $projects = [$p1, $p2, $p3];
+        foreach ($projects as $p) {
+            if ($p->client && !$p->client->notifications()->where('data->project_id', $p->id)->where('data->type', 'assigned')->exists()) {
+                $p->client->notify(new ProjectNotification($p, 'assigned'));
+            }
+        }
     }
 }
